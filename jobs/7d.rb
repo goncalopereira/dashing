@@ -46,7 +46,16 @@ end
 
 def logs
   
-  uri = URI("http://logginges.prod.svc.7d:9200/logstash-2014.01.03/_search?pretty")
+  #previous minute
+  time = (Time.now - 60)
+  timestamp  = time.to_i
+  parsed_month = "%02d" % time.month
+  parsed_day = "%02d" % time.day
+ 
+  puts time
+  index = "logstash-"+time.year.to_s+"." + parsed_month + "." + parsed_day
+
+  uri = URI("http://logginges.prod.svc.7d:9200/"+ index +"/_search?pretty")
   http = Net::HTTP.new(uri.host, uri.port)
 
   request = Net::HTTP::Post.new(uri.request_uri)
@@ -74,7 +83,7 @@ def logs
 {
 "range": {
 "@timestamp": {
-"from": 1388770145449,
+"from": '+ timestamp.to_s + ',
 "to": "now"
 }
 }
@@ -113,8 +122,9 @@ def logs
 ]
 }'
 
+  puts request.body
   response =  http.request(request) 
-  puts response.body
+#  puts response.body
 end
 
 def parse_url response_body
