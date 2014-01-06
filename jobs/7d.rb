@@ -3,22 +3,40 @@ require 'nokogiri'
 # :first_in sets how long it takes before the job is first run. In this case, it is run immediately
 SCHEDULER.every '1m', :first_in => 0 do |job|
 
-  u = parse_url logs
+  l = logs
+
+  u = parse_url l
 
   p = parameters u
 
   trackid = p["trackId"]
+  country = p["country"]
 
-  xml = track_details_xml trackid
+  if country.nil? 
+    country = "GB"
+  end
+
+  xml = track_details_xml trackid, country
 
   track = track_details xml
 
   send_event('artwork', { image: track["artwork"], width: 350 })
   send_event('name', {title: track["artist_name"], text: track["track_name"], moreinfo: track["release_name"]})
 
+  c = consumers l
+  send_event('consumers', { items: c.values })
+end
+
+def consumers logs
   consumers = Hash.new({ value: 0 })
   consumers["test"] = { label: "test", value: 1 }
-  send_event('consumers', { items: consumers.values })
+  results = JSON.parse(logs)["hits"]["hits"]
+  
+  puts results
+
+  consumers["total"] = { label: "total", value: results.length } 
+
+  consumers
 end
 
 def logs
@@ -103,8 +121,10 @@ def parameters u
   Rack::Utils.parse_nested_query uri.query
 end
 
-def track_details_xml trackid
-  response = Net::HTTP.get_response(URI("http://api.7digital.com/1.2/track/details?oauth_consumer_key=test-api&trackId="+trackid))
+def track_details_xml trackid, country
+  track_details_url = "http://api.7digital.com/1.2/track/details?oauth_consumer_key=test-api&trackId="+trackid+"&country="+country
+  puts track_details_url
+  response = Net::HTTP.get_response(URI(track_details_url))
   Nokogiri::XML(response.body) 
 end
 
