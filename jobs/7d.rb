@@ -34,13 +34,11 @@ end
 
 def consumers logs
   consumers = Hash.new({ value: 0 })
-  consumers["test"] = { label: "test", value: 1 }
-  results = JSON.parse(logs)["hits"]["hits"]
+  results = parse_consumers logs
   
-  puts results
-
-  consumers["total"] = { label: "total", value: results.length } 
-
+  results.keys.each do |key|
+    consumers[key] = { label: key, value: results[key] }
+  end
   consumers
 end
 
@@ -52,7 +50,6 @@ def logs
   parsed_month = "%02d" % time.month
   parsed_day = "%02d" % time.day
  
-  puts time
   index = "logstash-"+time.year.to_s+"." + parsed_month + "." + parsed_day
 
   uri = URI("http://logginges.prod.svc.7d:9200/"+ index +"/_search?pretty")
@@ -112,9 +109,24 @@ def logs
 ]
 }'
 
-  puts request.body
   response =  http.request(request) 
   response.body
+end
+
+def parse_consumers response_body
+  results = Hash.new
+  list = JSON.parse(response_body)["hits"]["hits"]
+  
+  list.each do |hit|
+    if results[hit["_source"]["consumer_name"]].nil?
+      results[hit["_source"]["consumer_name"]] = 1
+    else
+      results[hit["_source"]["consumer_name"]] = results[hit["_source"]["consumer_name"]]+1
+    end
+  end
+
+  puts results
+  results
 end
 
 def parse_url response_body
