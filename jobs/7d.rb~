@@ -48,7 +48,7 @@ def logs
   
   #previous minute
   time = (Time.now - 60)
-  timestamp  = time.to_i * 1000
+  timestamp  = time.to_i
   parsed_month = "%02d" % time.month
   parsed_day = "%02d" % time.day
  
@@ -68,7 +68,7 @@ def logs
 "should": [
 {
 "query_string": {
-"query": "@endpoint_id == 1850"
+"query": "@endpoint_id == 1850 "
 }
 }
 ]
@@ -114,7 +114,7 @@ def logs
 
   puts request.body
   response =  http.request(request) 
-  puts response.body
+#  puts response.body
 end
 
 def parse_url response_body
