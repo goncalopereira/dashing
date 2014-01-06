@@ -28,19 +28,14 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
 
   p = parameters u
 
-  response = Net::HTTP.get_response(URI("http://api.7digital.com/1.2/track/details?oauth_consumer_key=test-api&trackId="+p["trackId"]))
+  trackid = p["trackId"]
 
-  xml = Nokogiri::XML(response.body)
-  
-  artist_name = xml.at_xpath("//response/track/artist/name").content
-  track_name = xml.at_xpath("//response/track/title").content
-  release_name = xml.at_xpath("//response/track/release/title").content
-  small_artwork = xml.at_xpath("//response/track/release/image").content
+  xml = track_details_xml trackid
 
-  artwork = small_artwork.sub "_50", "_350"
+  track = track_details xml
 
-  send_event('artwork', { image: artwork, width: 350 })
-  send_event('name', {title: artist_name, text: track_name, moreinfo: release_name})
+  send_event('artwork', { image: track["artwork"], width: 350 })
+  send_event('name', {title: track["artist_name"], text: track["track_name"], moreinfo: track["release_name"]})
 
   consumers = Hash.new({ value: 0 })
   consumers["test"] = { label: "test", value: 1 }
@@ -54,4 +49,22 @@ end
 def parameters u
   uri = URI(u)
   Rack::Utils.parse_nested_query uri.query
+end
+
+def track_details_xml trackid
+  response = Net::HTTP.get_response(URI("http://api.7digital.com/1.2/track/details?oauth_consumer_key=test-api&trackId="+trackid))
+  Nokogiri::XML(response.body) 
+end
+
+def track_details xml 
+  track = Hash.new 
+
+  track["artist_name"] = xml.at_xpath("//response/track/artist/name").content
+  track["track_name"] = xml.at_xpath("//response/track/title").content
+  track["release_name"] = xml.at_xpath("//response/track/release/title").content
+
+  small_artwork = xml.at_xpath("//response/track/release/image").content
+  track["artwork"] = small_artwork.sub "_50", "_350"
+
+  track
 end
