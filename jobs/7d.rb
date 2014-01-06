@@ -37,7 +37,7 @@ def consumers logs
   results = parse_consumers logs
   
   results.keys.each do |key|
-    consumers[key] = { label: key, value: results[key] }
+    consumers[key] = { label: key[0..15], value: results[key] }
   end
   consumers
 end
