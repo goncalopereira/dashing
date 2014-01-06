@@ -28,8 +28,6 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
 
   p = parameters u
 
-  puts p["trackId"]
-
   response = Net::HTTP.get_response(URI("http://api.7digital.com/1.2/track/details?oauth_consumer_key=test-api&trackId="+p["trackId"]))
 
   xml = Nokogiri::XML(response.body)
@@ -37,7 +35,9 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   artist_name = xml.at_xpath("//response/track/artist/name").content
   track_name = xml.at_xpath("//response/track/title").content
   release_name = xml.at_xpath("//response/track/release/title").content
-  artwork = xml.at_xpath("//response/track/release/image").content
+  small_artwork = xml.at_xpath("//response/track/release/image").content
+
+  artwork = small_artwork.sub "_50", "_350"
 
   send_event('artwork', { image: artwork, width: 350 })
   send_event('name', {title: artist_name, text: track_name, moreinfo: release_name})
