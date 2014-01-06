@@ -4,25 +4,27 @@ require 'nokogiri'
 SCHEDULER.every '1m', :first_in => 0 do |job|
 
   response_body = '{
-    "took" : 17,
-    "timed_out" : false,
-    "_shards" : {
-      "total" : 1,
-      "successful" : 1,
-      "failed" : 0
-    },
-    "hits" : {
-      "total" : 1338,
-      "max_score" : null,
-      "hits" : [ {
-        "_index" : "logstash-2014.01.03",
-        "_type" : "api-request-log",
-        "_id" : "VqSBe5HkTu6u_RWgilXkhg",
-        "_score" : null, "_source" : {"consumer_id":155,"consumer_key":"pure","consumer_name":"Pure Live (Web)","partner_id":849,"endpoint_id":1850,"endpoint":"~/stream/subscription","url":"http://stream.svc.7digital.net/stream/subscription?clientId=94be9733-e772-479c-a45d-5b1ab9a2a148&formatId=26&oauth_consumer_key=pure&oauth_nonce=6401494&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1388771210&oauth_version=1.0&releaseId=630873&shopId=34&trackId=7001800&userId=94be9733-e772-479c-a45d-5b1ab9a2a148&oauth_signature=GQhkIPfZS7SvxP5SlZKaosSr4DY=","consumer_ip":"83.244.128.126","verb":"GET","user_id":122866878,"shop_id":34,"server":"PROD-APIWEB08","response_time":15,"cached":false,"internal_status":0,"@timestamp":"2014-01-03T17:46:49.869Z","from_user_auth":true,"@version":"1","type":"api-request-log"},
-        "sort" : [ 1388771209869 ]
-      }]
-      }
-      }'
+  "took" : 17,
+  "timed_out" : false,
+  "_shards" : {
+  "total" : 1,
+  "successful" : 1,
+  "failed" : 0
+  },
+  "hits" : {
+  "total" : 1338,
+  "max_score" : null,
+  "hits" : [ {
+  "_index" : "logstash-2014.01.03",
+  "_type" : "api-request-log",
+  "_id" : "VqSBe5HkTu6u_RWgilXkhg",
+  "_score" : null, "_source" : {"consumer_id":155,"consumer_key":"pure","consumer_name":"Pure Live (Web)","partner_id":849,"endpoint_id":1850,"endpoint":"~/stream/subscription","url":"http://stream.svc.7digital.net/stream/subscription?clientId=94be9733-e772-479c-a45d-5b1ab9a2a148&formatId=26&oauth_consumer_key=pure&oauth_nonce=6401494&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1388771210&oauth_version=1.0&releaseId=630873&shopId=34&trackId=7001800&userId=94be9733-e772-479c-a45d-5b1ab9a2a148&oauth_signature=GQhkIPfZS7SvxP5SlZKaosSr4DY=","consumer_ip":"83.244.128.126","verb":"GET","user_id":122866878,"shop_id":34,"server":"PROD-APIWEB08","response_time":15,"cached":false,"internal_status":0,"@timestamp":"2014-01-03T17:46:49.869Z","from_user_auth":true,"@version":"1","type":"api-request-log"},
+  "sort" : [ 1388771209869 ]
+  }]
+  }
+  }'
+
+  logs
 
   u = parse_url response_body
 
@@ -40,6 +42,79 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   consumers = Hash.new({ value: 0 })
   consumers["test"] = { label: "test", value: 1 }
   send_event('consumers', { items: consumers.values })
+end
+
+def logs
+  
+  uri = URI("http://logginges.prod.svc.7d:9200/logstash-2014.01.03/_search?pretty")
+  http = Net::HTTP.new(uri.host, uri.port)
+
+  request = Net::HTTP::Post.new(uri.request_uri)
+
+ request.body = '{
+"query": {
+"filtered": {
+"query": {
+"bool": {
+"should": [
+{
+"query_string": {
+"query": "@endpoint_id == 1850 "
+}
+}
+]
+}
+},
+"filter": {
+"bool": {
+"must": [
+{
+"match_all": {}
+},
+{
+"range": {
+"@timestamp": {
+"from": 1388770145449,
+"to": "now"
+}
+}
+},
+{
+"bool": {
+"must": [
+{
+"match_all": {}
+}
+]
+}
+}
+]
+}
+}
+}
+},
+"highlight": {
+"fields": {},
+"fragment_size": 2147483647,
+"pre_tags": [
+"@start-highlight@"
+],
+"post_tags": [
+"@end-highlight@"
+]
+},
+"size": 500,
+"sort": [
+{
+"@timestamp": {
+"order": "desc"
+}
+}
+]
+}'
+
+  response =  http.request(request) 
+  puts response.body
 end
 
 def parse_url response_body
