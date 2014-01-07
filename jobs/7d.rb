@@ -29,7 +29,7 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
     track["track_name"] = "Track Details Error"
   end
 
-  send_event('artwork', { image: track["artwork"], width: 350 })
+  send_event('artwork', { image: track["artwork"], width: 280 })
   send_event('name', {title: track["artist_name"], text: track["track_name"], moreinfo: track["release_name"]})
 
   c = consumers subscriptions
