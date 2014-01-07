@@ -3,7 +3,7 @@ require 'nokogiri'
 # :first_in sets how long it takes before the job is first run. In this case, it is run immediately
 SCHEDULER.every '1m', :first_in => 0 do |job|
 
-  l = logs
+  l = logs 1850
 
   u = parse_url l
 
@@ -44,22 +44,8 @@ def consumers logs
   consumers
 end
 
-def logs
-  
-  #previous minute
-  time = (Time.now - 60)
-  timestamp  = time.to_i * 1000
-  parsed_month = "%02d" % time.month
-  parsed_day = "%02d" % time.day
- 
-  index = "logstash-"+time.year.to_s+"." + parsed_month + "." + parsed_day
-
-  uri = URI("http://logginges.prod.svc.7d:9200/"+ index +"/_search?pretty")
-  http = Net::HTTP.new(uri.host, uri.port)
-
-  request = Net::HTTP::Post.new(uri.request_uri)
-
- request.body = '{
+def es_query endpointid, timestamp
+'{
 "query": {
 "filtered": {
 "query": {
@@ -67,7 +53,7 @@ def logs
 "should": [
 {
 "query_string": {
-"query": "@endpoint_id == 1850"
+"query": "@endpoint_id == '+ endpointid.to_s + '"
 }
 }
 ]
@@ -110,6 +96,24 @@ def logs
 }
 ]
 }'
+end
+
+def logs endpoint_id
+  
+  #previous minute
+  time = (Time.now - 60)
+  timestamp  = time.to_i * 1000
+  parsed_month = "%02d" % time.month
+  parsed_day = "%02d" % time.day
+ 
+  index = "logstash-"+time.year.to_s+"." + parsed_month + "." + parsed_day
+
+  uri = URI("http://logginges.prod.svc.7d:9200/"+ index +"/_search")
+  http = Net::HTTP.new(uri.host, uri.port)
+
+  request = Net::HTTP::Post.new(uri.request_uri)
+
+  request.body = es_query endpoint_id, timestamp
 
   response =  http.request(request) 
   response.body
