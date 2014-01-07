@@ -3,9 +3,11 @@ require 'nokogiri'
 # :first_in sets how long it takes before the job is first run. In this case, it is run immediately
 SCHEDULER.every '1m', :first_in => 0 do |job|
 
-  l = logs 1850
+  subscriptions = logs 1850
+  catalogue = logs 1830
+  locker = logs 1870
 
-  u = parse_url l
+  u = parse_url subscriptions
 
   p = parameters u
 
@@ -30,14 +32,20 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   send_event('artwork', { image: track["artwork"], width: 350 })
   send_event('name', {title: track["artist_name"], text: track["track_name"], moreinfo: track["release_name"]})
 
-  c = consumers l
-  send_event('consumers', { items: c.values })
+  c = consumers subscriptions
+  send_event('consumers_subscription', { items: c.values })
+  c = consumers catalogue
+  send_event('consumers_catalogue', { items: c.values })
+  c = consumers locker
+  send_event('consumers_locker', { items: c.values })
 end
 
 def consumers logs
   consumers = Hash.new({ value: 0 })
   results = parse_consumers logs
   
+  puts results
+   
   results.keys.each do |key|
     consumers[key] = { label: key[0..15], value: results[key] }
   end
