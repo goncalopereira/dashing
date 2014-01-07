@@ -177,7 +177,7 @@ def track_details xml
 end
 
 def graphite_datapoints 
-  uri = "http://prod-mediadelivery-monitoring00.nix.sys.7d/render?target=stats.timers.Prod.Streaming.Catalogue.Cached.External.EU.TTFB.mean&format=json&from=-5minutes"
+  uri = "http://prod-mediadelivery-monitoring00.nix.sys.7d/render?target=stats.timers.Prod.Streaming.Catalogue.Cached.External.EU.TTFB.mean&format=json&from=-10minutes"
 
   response = Net::HTTP.get_response(URI(uri))
  
