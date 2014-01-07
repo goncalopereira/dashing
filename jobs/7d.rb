@@ -9,11 +9,13 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
 
   p = parameters u
 
-  trackid = p["trackId"]
-  country = p["country"]
+  puts p
 
-  if country.nil? 
-    country = "GB"
+  trackid = p["trackId"]
+  country = "GB"
+
+  if !p["country"].nil? 
+    country = p["country"]
   end
 
   track = nil
@@ -125,7 +127,6 @@ def parse_consumers response_body
     end
   end
 
-  puts results
   results
 end
 
