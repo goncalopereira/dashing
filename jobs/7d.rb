@@ -13,7 +13,7 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
 
   puts p
 
-  trackid = p["trackId"]
+  trackid = p["trackid"]
   country = "GB"
 
   if !p["country"].nil? 
@@ -148,7 +148,12 @@ end
 
 def parameters u
   uri = URI(u)
-  Rack::Utils.parse_nested_query uri.query
+  q = Rack::Utils.parse_nested_query uri.query
+  downcased = Hash.new
+  q.each do |k,v|
+    downcased[k.downcase] = v
+  end
+  downcased
 end
 
 def track_details_xml trackid, country
