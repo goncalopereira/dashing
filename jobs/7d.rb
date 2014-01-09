@@ -54,8 +54,6 @@ def event_list results
     consumers[key] = { label: key[0..15], value: results[key] }
   end
   
-  puts consumers
-
   consumers
 end
 
