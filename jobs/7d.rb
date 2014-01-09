@@ -38,8 +38,6 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   send_event('consumers_catalogue', { items: c.values })
   c = consumers locker
   send_event('consumers_locker', { items: c.values })
-
-  send_event('ttfb', { value: graphite_datapoints[0] })
 end
 
 def consumers logs
@@ -178,17 +176,3 @@ def track_details xml
   track
 end
 
-def graphite_datapoints 
-  uri = "http://prod-mediadelivery-monitoring00.nix.sys.7d/render?target=stats.timers.Prod.Streaming.Catalogue.Cached.External.EU.TTFB.mean&format=json&from=-10minutes"
-
-  response = Net::HTTP.get_response(URI(uri))
- 
-  json = JSON.parse(response.body) 
-
-  json[0]["datapoints"].each do |datapoint|
-    if not datapoint[0].nil?
-      return datapoint
-    end
-  end
-  return [nil,0]
-end
