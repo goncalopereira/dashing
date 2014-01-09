@@ -27,8 +27,10 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
     track["track_name"] = "Track Details Error"
   end
 
+  text = "\"#{track["track_name"]}\" by \"#{track["artist_name"]}\" on \"#{track["release_name"]}\" listened from \"#{country}\""
   send_event('artwork', { image: track["artwork"], width: 280 })
-  send_event('name', {title: track["artist_name"], text: track["track_name"], moreinfo: track["release_name"]})
+  send_event('name', { text: text})
+ 
 
   c = consumers subscriptions
   send_event('consumers_subscription', { items: c.values })
