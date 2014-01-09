@@ -69,7 +69,7 @@ def event_list results
   consumers
 end
 
-def es_query endpointid, timestamp
+def es_query timestamp, query
 '{
 "query": {
 "filtered": {
@@ -78,7 +78,7 @@ def es_query endpointid, timestamp
 "should": [
 {
 "query_string": {
-"query": "endpoint_id: '+ endpointid.to_s + '"
+"query": "' + query + '"
 }
 }
 ]
@@ -138,7 +138,7 @@ def logs endpoint_id
 
   request = Net::HTTP::Post.new(uri.request_uri)
 
-  request.body = es_query endpoint_id, timestamp
+  request.body = es_query timestamp, "endpoint_id: #{endpoint_id}"
 
   response =  http.request(request) 
   response.body
