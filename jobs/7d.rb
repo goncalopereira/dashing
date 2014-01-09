@@ -8,7 +8,6 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   locker = logs 1870
 
   u = parse_urls subscriptions
-
   p = parameters u[0]
 
   trackid = p["trackid"]
@@ -31,24 +30,32 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   send_event('artwork', { image: track["artwork"], width: 280 })
   send_event('name', { text: text})
  
-
-  c = consumers subscriptions
+  c = event_list (parse_consumers subscriptions)
   send_event('consumers_subscription', { items: c.values })
-  c = consumers catalogue
+  c = event_list (parse_consumers catalogue)
   send_event('consumers_catalogue', { items: c.values })
-  c = consumers locker
+  c = event_list (parse_consumers locker)
   send_event('consumers_locker', { items: c.values })
+
+  countries = parse_countries u, Hash.new
+
+  u = parse_urls catalogue
+  countries = parse_countries u, countries
+
+  u = parse_urls locker
+  c = event_list (parse_countries u, countries)
+  send_event('countries', { items: c.values })
 end
 
-def consumers logs
+def event_list results
   consumers = Hash.new({ value: 0 })
-  results = parse_consumers logs
-  
-  puts results
    
   results.keys.each do |key|
     consumers[key] = { label: key[0..15], value: results[key] }
   end
+  
+  puts consumers
+
   consumers
 end
 
@@ -138,6 +145,29 @@ def parse_consumers response_body
       results[hit["_source"]["consumer_name"]] = results[hit["_source"]["consumer_name"]]+1
     end
   end
+
+  results
+end
+
+def parse_countries urls, results
+
+  urls.each do |url|
+    uri = URI(url)
+    q = Rack::Utils.parse_nested_query uri.query
+
+    country = q["country"]
+
+    if country.nil?
+      country = "GB"
+    end
+
+    if results[country].nil?
+      results[country] = 0
+    end
+  
+    results[country] = results[country]+1
+  end
+
   results
 end
 
