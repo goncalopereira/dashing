@@ -3,12 +3,17 @@ require 'nokogiri'
 # :first_in sets how long it takes before the job is first run. In this case, it is run immediately
 SCHEDULER.every '1m', :first_in => 0 do |job|
 
-  subscriptions = logs 1850
-  catalogue = logs 1830
-  locker = logs 1870
+  l = Hash.new
+  l["StreamSubscription"] = logs 1850
+  l["Catalogue"] = logs 1830
+  l["StreamLocker"] = logs 1870
 
-  u = parse_urls subscriptions
+  select = l.keys.sample
+
+  u = parse_field "url", l[select]
   p = parameters u[0]
+
+  cn = (parse_field "consumer_name", l[select])[0]
 
   trackid = p["trackid"]
   country = "GB"
@@ -26,23 +31,24 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
     track["track_name"] = "Track Details Error"
   end
 
-  text = "\"#{track["track_name"]}\" by \"#{track["artist_name"]}\" on \"#{track["release_name"]}\" listened from \"#{country}\""
+  text = "\"#{track["track_name"]}\" by \"#{track["artist_name"]}\" on \"#{track["release_name"]}\" listened from \"#{country}\" with \"#{cn}\""
   send_event('artwork', { image: track["artwork"], width: 280 })
-  send_event('name', { text: text})
+  send_event('name', { title: select, text: text})
  
-  c = event_list (parse_consumers subscriptions)
+  c = event_list (parse_consumers l["StreamSubscription"])
   send_event('consumers_subscription', { items: c.values })
-  c = event_list (parse_consumers catalogue)
+  c = event_list (parse_consumers l["Catalogue"])
   send_event('consumers_catalogue', { items: c.values })
-  c = event_list (parse_consumers locker)
+  c = event_list (parse_consumers l["StreamLocker"])
   send_event('consumers_locker', { items: c.values })
 
+  u = parse_field "url", l["StreamSubscription"]
   countries = parse_countries u, Hash.new
 
-  u = parse_urls catalogue
+  u = parse_field "url", l["Catalogue"]
   countries = parse_countries u, countries
 
-  u = parse_urls locker
+  u = parse_field "url", l["StreamLocker"]
   c = event_list (parse_countries u, countries)
   send_event('countries', { items: c.values })
 end
@@ -169,10 +175,10 @@ def parse_countries urls, results
   results
 end
 
-def parse_urls response_body
+def parse_field field, response_body
   results = []
   JSON.parse(response_body)["hits"]["hits"].each do |hit|
-    results << hit["_source"]["url"]
+    results << hit["_source"][field]
   end
   results
 end
