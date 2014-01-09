@@ -78,7 +78,7 @@ def es_query endpointid, timestamp
 "should": [
 {
 "query_string": {
-"query": "@endpoint_id == '+ endpointid.to_s + '"
+"query": "endpoint_id: '+ endpointid.to_s + '"
 }
 }
 ]
