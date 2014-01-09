@@ -7,9 +7,9 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   catalogue = logs 1830
   locker = logs 1870
 
-  u = parse_url subscriptions
+  u = parse_urls subscriptions
 
-  p = parameters u
+  p = parameters u[0]
 
   trackid = p["trackid"]
   country = "GB"
@@ -138,12 +138,15 @@ def parse_consumers response_body
       results[hit["_source"]["consumer_name"]] = results[hit["_source"]["consumer_name"]]+1
     end
   end
-
   results
 end
 
-def parse_url response_body
-  JSON.parse(response_body)["hits"]["hits"][0]["_source"]["url"]
+def parse_urls response_body
+  results = []
+  JSON.parse(response_body)["hits"]["hits"].each do |hit|
+    results << hit["_source"]["url"]
+  end
+  results
 end
 
 def parameters u
