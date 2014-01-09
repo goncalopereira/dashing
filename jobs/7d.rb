@@ -15,6 +15,10 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
 
   cn = (parse_field "consumer_name", l[select])[0]
 
+  uid = (parse_field "user_id", l[select])[0]
+
+  puts uid
+
   trackid = p["trackid"]
   country = "GB"
 
@@ -51,6 +55,8 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   u = parse_field "url", l["StreamLocker"]
   c = event_list (parse_countries u, countries)
   send_event('countries', { items: c.values })
+
+  media_speed select, country
 end
 
 def event_list results
@@ -212,4 +218,34 @@ def track_details xml
 
   track
 end
+
+
+def media_speed media_type, country
+    url = nil
+    location = nil
+
+    if country == "US"
+      location = "USE"
+    else
+      location = "EU"
+    end
+
+    url = "http://prod-mediadelivery-monitoring00.nix.sys.7d/render?target=stats.timers.Prod.Streaming.#{media_type}.Cached.External.#{location}.TTFB.mean&format=json&from=-10minutes"  
+    send_event('ttfb', { value: (graphite_datapoints url)[0], title: "Cached TTFB from #{location}" })
+end
+
+def graphite_datapoints url 
+
+    response = Net::HTTP.get_response(URI(url))
+     
+      json = JSON.parse(response.body) 
+
+        json[0]["datapoints"].each do |datapoint|
+              if not datapoint[0].nil?
+                      return datapoint
+                          end
+                end
+          return [nil,0]
+end
+
 
