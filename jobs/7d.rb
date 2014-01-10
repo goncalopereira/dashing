@@ -4,9 +4,9 @@ require 'nokogiri'
 SCHEDULER.every '1m', :first_in => 0 do |job|
 
   l = Hash.new
-  l["StreamSubscription"] = logs 1850
-  l["Catalogue"] = logs 1830
-  l["StreamLocker"] = logs 1870
+  l["StreamSubscription"] = logs 1850, 0, 60
+  l["Catalogue"] = logs 1830, 0, 60
+  l["StreamLocker"] = logs 1870, 0, 60
 
   select = l.keys.sample
 
@@ -16,8 +16,8 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   cn = (parse_field "consumer_name", l[select])[0]
 
   uid = (parse_field "user_id", l[select])[0]
-
-  puts uid
+  
+  hourly_streams select, uid
 
   trackid = p["trackid"]
   country = "GB"
@@ -57,6 +57,23 @@ SCHEDULER.every '1m', :first_in => 0 do |job|
   send_event('countries', { items: c.values })
 
   media_speed select, country
+end
+
+def hourly_streams select, uid
+  u_logs = []
+  if select == "StreamSubscription" 
+    response_body = logs 1850, uid, 3600
+    u_logs = JSON.parse(response_body)["hits"]["hits"]
+    send_event("hourly_streams", { value: u_logs.length })
+  end
+
+  if select == "StreamLocker"
+    response_body = logs 1870, uid, 3600
+    u_logs = JSON.parse(response_body)["hits"]["hits"]    
+    send_event("hourly_streams", { value: u_logs.length })
+  end
+
+  send_event("hourly_streams", { value: u_logs.length }) 
 end
 
 def event_list results
@@ -123,10 +140,10 @@ def es_query timestamp, query
 }'
 end
 
-def logs endpoint_id
+def logs endpoint_id, user_id, seconds
   
   #previous minute
-  time = (Time.now - 60)
+  time = (Time.now - seconds)
   timestamp  = time.to_i * 1000
   parsed_month = "%02d" % time.month
   parsed_day = "%02d" % time.day
@@ -138,7 +155,13 @@ def logs endpoint_id
 
   request = Net::HTTP::Post.new(uri.request_uri)
 
-  request.body = es_query timestamp, "endpoint_id: #{endpoint_id}"
+  query =  "endpoint_id: #{endpoint_id}"
+
+  if user_id != 0
+    query = query + " AND user_id: #{user_id}"
+  end
+
+  request.body = es_query timestamp, query
 
   response =  http.request(request) 
   response.body
