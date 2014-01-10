@@ -1,5 +1,6 @@
 require 'net/http'
 require 'nokogiri'
+require './jobs/keys.rb'
 # :first_in sets how long it takes before the job is first run. In this case, it is run immediately
 SCHEDULER.every '1m', :first_in => 0 do |job|
 
@@ -223,7 +224,7 @@ def parameters u
 end
 
 def track_details_xml trackid, country
-  track_details_url = "http://api.7digital.com/1.2/track/details?oauth_consumer_key=test-api&trackId="+trackid+"&country="+country
+  track_details_url = "http://api.7digital.com/1.2/track/details?oauth_consumer_key=#{API_KEY}&trackId=#{trackid}&country=#{country}"
   puts track_details_url
   response = Net::HTTP.get_response(URI(track_details_url))
   Nokogiri::XML(response.body) 
