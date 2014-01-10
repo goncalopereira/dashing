@@ -62,19 +62,21 @@ end
 
 def hourly_streams select, uid
   u_logs = []
+  releases = 0
   if select == "StreamSubscription" 
     response_body = logs 1850, uid, 3600
     u_logs = JSON.parse(response_body)["hits"]["hits"]
-    send_event("hourly_streams", { value: u_logs.length })
+    releases = locker_releases_count uid
   end
 
   if select == "StreamLocker"
     response_body = logs 1870, uid, 3600
     u_logs = JSON.parse(response_body)["hits"]["hits"]    
-    send_event("hourly_streams", { value: u_logs.length })
+    releases = locker_releases_count uid
   end
 
   send_event("hourly_streams", { value: u_logs.length }) 
+  send_event("locker_releases", { value: releases }) 
 end
 
 def event_list results
@@ -243,6 +245,17 @@ def track_details xml
   track
 end
 
+def locker_details_xml userid
+  locker_url = "http://api.7digital.com/1.2/user/locker?userId=#{userid}&oauth_consumer_key=#{API_LOCKER_KEY}"
+  puts locker_url
+  response = Net::HTTP.get_response(URI(locker_url))
+  Nokogiri::XML(response.body)
+end
+
+def locker_releases_count userid
+  xml = locker_details_xml userid
+  return xml.at_xpath("//response/locker/lockerReleases/totalItems").content
+end
 
 def media_speed media_type, country
     url = nil
